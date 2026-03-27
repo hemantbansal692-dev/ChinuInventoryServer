@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Chinu Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+
+<div class="flex h-screen">
+
+  <!-- Sidebar -->
+  <div class="w-64 bg-gradient-to-b from-indigo-600 to-purple-700 text-white p-5">
+    <h1 class="text-2xl font-bold mb-8">Chinu Toys</h1>
+    <ul class="space-y-4">
+      <li class="font-semibold">Dashboard</li>
+      <li>Products</li>
+      <li>Orders</li>
+      <li>Customers</li>
+      <li>Reports</li>
+      <li>Settings</li>
+    </ul>
+  </div>
+
+  <!-- Main Content -->
+  <div class="flex-1 p-6 overflow-y-auto">
+
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="text-xl font-semibold">Dashboard</h2>
+      <div class="bg-white px-4 py-2 rounded shadow">Admin</div>
+    </div>
+
+    <!-- Cards -->
+    <div class="grid grid-cols-4 gap-4 mb-6">
+      <div class="bg-white p-4 rounded shadow">
+        <p class="text-gray-500">Total Revenue</p>
+        <h3 class="text-xl font-bold">₹128,430</h3>
+      </div>
+      <div class="bg-white p-4 rounded shadow">
+        <p class="text-gray-500">Total Orders</p>
+        <h3 class="text-xl font-bold">243</h3>
+      </div>
+      <div class="bg-white p-4 rounded shadow">
+        <p class="text-gray-500">Total Products</p>
+        <h3 class="text-xl font-bold">86</h3>
+      </div>
+      <div class="bg-white p-4 rounded shadow">
+        <p class="text-gray-500">Low Stock</p>
+        <h3 class="text-xl font-bold text-red-500">12</h3>
+      </div>
+    </div>
+
+    <!-- Charts + Products -->
+    <div class="grid grid-cols-2 gap-4 mb-6">
+
+      <div class="bg-white p-4 rounded shadow">
+        <h3 class="mb-4 font-semibold">Sales Overview</h3>
+        <canvas id="salesChart"></canvas>
+      </div>
+
+      <div class="bg-white p-4 rounded shadow">
+        <h3 class="mb-4 font-semibold">Top Selling Products</h3>
+        <canvas id="productChart"></canvas>
+      </div>
+
+    </div>
+
+    <!-- Tables -->
+    <div class="grid grid-cols-2 gap-4">
+
+      <div class="bg-white p-4 rounded shadow">
+        <h3 class="mb-4 font-semibold">Low Stock</h3>
+        <table class="w-full text-sm">
+          <tr class="text-gray-500">
+            <th>Product</th><th>Stock</th>
+          </tr>
+          <tr><td>RC Car</td><td class="text-red-500">3</td></tr>
+          <tr><td>Doll Set</td><td class="text-yellow-500">5</td></tr>
+        </table>
+      </div>
+
+      <div class="bg-white p-4 rounded shadow">
+        <h3 class="mb-4 font-semibold">Recent Orders</h3>
+        <table class="w-full text-sm">
+          <tr class="text-gray-500">
+            <th>ID</th><th>Amount</th>
+          </tr>
+          <tr><td>#7652</td><td>₹2450</td></tr>
+          <tr><td>#7651</td><td>₹1850</td></tr>
+        </table>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  new Chart(document.getElementById('salesChart'), {
+    type: 'line',
+    data: {
+      labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+      datasets: [{
+        label: 'Sales',
+        data: [12000, 19000, 15000, 18000, 22000, 25000, 21000]
+      }]
+    }
+  });
+
+  new Chart(document.getElementById('productChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Dolls','Figures','Educational','Vehicles'],
+      datasets: [{
+        data: [35, 25, 20, 20]
+      }]
+    }
+  });
+</script>
+
+</body>
+</html>
