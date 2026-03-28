@@ -1,260 +1,259 @@
 const express = require("express");
 const cors = require("cors");
-const sqlite3 = require("sqlite3").verbose();
 const bodyParser = require("body-parser");
+const { Pool } = require("pg");
 
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-const db = new sqlite3.Database("chinu_shop.db");
-
-// ✅ Create orders table
-db.run(`CREATE TABLE IF NOT EXISTS orders (
-  id TEXT PRIMARY KEY,
-  clientName TEXT,
-  clientPhone TEXT,
-  clientAddress TEXT,
-  gstNumber TEXT,
-  transport TEXT,
-  transportAddress TEXT,
-  packingCharges REAL,
-  otherCharges REAL,
-  gstAmount REAL,
-  items TEXT,
-  total REAL,
-  createdAt TEXT,
-  status TEXT
-)`);
-
-// ✅ Create products table
-db.run(`CREATE TABLE IF NOT EXISTS products (
-  id TEXT PRIMARY KEY,
-  name TEXT,
-  quantity INTEGER,
-  minStock INTEGER,
-  purchasePrice REAL,
-  sellingPrice REAL,
-  category TEXT,
-  requiredQuantity INTEGER
-)`);
-
-// ✅ Sync order from Android
-app.post("/api/orders", (req, res) => {
-  const {
-    id,
-    clientName,
-    clientAddress,
-    clientPhone,
-    gstNumber,
-    transport,
-    transportAddress,
-    packingCharges,
-    otherCharges,
-    gstAmount,
-    items,
-    total,
-    createdAt,
-    status
-  } = req.body;
-
-  db.run(
-
-    
-    `INSERT OR REPLACE INTO orders (
-      id, clientName, clientAddress, clientPhone, gstNumber,
-      transport, transportAddress, packingCharges, otherCharges,
-      gstAmount, items, total, createdAt, status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      id,
-      clientName,
-      clientAddress,
-      clientPhone,
-      gstNumber,
-      transport,
-      transportAddress,
-      packingCharges,
-      otherCharges,
-      gstAmount,
-      JSON.stringify(items),
-      total,
-      createdAt,
-      status
-    ],
-    (err) => {
-      if (err) return res.status(500).send("DB error: " + err.message);
-      res.send("✅ Order synced");
-    }
-  );
+// PostgreSQL connection
+const pool =new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false,
+  },
 });
 
-// ✅ Sync product from Android
-app.post("/api/products/upload", (req, res) => {
-  const products = req.body;
-  if (!Array.isArray(products)) return res.status(400).send("Invalid payload");
+// Create Tables
+(async () => {
+  try {
+    //create Orders Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS orders (
+        id TEXT PRIMARY KEY,
+        clientName TEXT,
+        clientPhone TEXT,
+        clientAddress TEXT,
+        gstNumber TEXT,
+        transport TEXT,
+        transportAddress TEXT,
+        packingCharges REAL,
+        otherCharges REAL,
+        gstAmount REAL,
+        items JSONB,
+        total REAL,
+        createdAt TIMESTAMP,
+        status TEXT
+      );
+    `);
 
-  const placeholders = products.map(() => "(?, ?, ?, ?, ?, ?, ?, ?)").join(", ");
-  const values = products.flatMap(p => [
-  p.id,
-  p.name,
-  p.quantity,
-  p.minStock,
-  p.purchasePrice,
-  p.sellingPrice || 0,
-  p.category || "Others",   // ✅ ADD THIS
-  p.requiredQuantity || 0,
-]);
+    //Create Products table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS products (
+        id TEXT PRIMARY KEY,
+        name TEXT,
+        quantity INTEGER,
+        minStock INTEGER,
+        purchasePrice REAL,
+        sellingPrice REAL,
+        category TEXT,
+        requiredQuantity INTEGER
+      );
+    `);
 
-  db.run(
-    `INSERT OR REPLACE INTO products (id, name, quantity, minStock, purchasePrice, sellingPrice, category, requiredQuantity)
-     VALUES ${placeholders}`,
-    values,
-    (err) => {
-      if (err) return res.status(500).send("DB error: " + err.message);
-      res.send("✅ Bulk products synced");
+    console.log("✅ Tables ready");
+  } catch (err) {
+    console.error("❌ Table creation error:", err);
+  }
+})();
+
+// ✅ Sync order from Android
+app.post("/api/orders", async (req, res) => {
+  try {
+    const order = req.body;
+
+    await pool.query(
+      `INSERT INTO orders (
+        id, clientName, clientPhone, clientAddress, gstNumber,
+        transport, transportAddress, packingCharges, otherCharges,
+        gstAmount, items, total, createdAt, status
+      ) VALUES (
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14
+      )
+      ON CONFLICT (id) DO UPDATE SET
+        clientName = EXCLUDED.clientName,
+        clientPhone = EXCLUDED.clientPhone,
+        clientAddress = EXCLUDED.clientAddress,
+        gstNumber = EXCLUDED.gstNumber,
+        transport = EXCLUDED.transport,
+        transportAddress = EXCLUDED.transportAddress,
+        packingCharges = EXCLUDED.packingCharges,
+        otherCharges = EXCLUDED.otherCharges,
+        gstAmount = EXCLUDED.gstAmount,
+        items = EXCLUDED.items,
+        total = EXCLUDED.total,
+        status = EXCLUDED.status`,
+      [
+        order.id,
+        order.clientName,
+        order.clientPhone,
+        order.clientAddress,
+        order.gstNumber,
+        order.transport,
+        order.transportAddress,
+        order.packingCharges,
+        order.otherCharges,
+        order.gstAmount,
+        order.items, // JSON directly
+        order.total,
+        order.createdAt,
+        order.status
+      ]
+    );
+
+    res.send("✅ Order synced");
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("DB error");
+  }
+});
+
+
+// ✅ Sync product from Android (bulk)
+app.post("/api/products/upload", async (req, res) => {
+  try {
+    const products = req.body;
+    if (!Array.isArray(products)) {
+      return res.status(400).send("Invalid payload");
     }
-  );
+
+    for (const p of products) {
+      await pool.query(
+        `INSERT INTO products (
+          id, name, quantity, minStock,
+          purchasePrice, sellingPrice, category, requiredQuantity
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+        ON CONFLICT (id) DO UPDATE SET
+          name = EXCLUDED.name,
+          quantity = EXCLUDED.quantity,
+          minStock = EXCLUDED.minStock,
+          purchasePrice = EXCLUDED.purchasePrice,
+          sellingPrice = EXCLUDED.sellingPrice,
+          category = EXCLUDED.category,
+          requiredQuantity = EXCLUDED.requiredQuantity`,
+        [
+          p.id,
+          p.name,
+          p.quantity,
+          p.minStock,
+          p.purchasePrice,
+          p.sellingPrice || 0,
+          p.category || "Others",
+          p.requiredQuantity || 0
+        ]
+      );
+    }
+
+    res.send("✅ Bulk products synced");
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("DB error");
+  }
 });
 
 
 // ✅ Fetch all products
-app.get("/api/products", (req, res) => {
-  db.all("SELECT * FROM products", [], (err, rows) => {
-    if (err) return res.status(500).send("Fetch error");
-    res.json(rows);
-  });
+app.get("/api/products", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT * FROM products");
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).send("Fetch error");
+  }
 });
 
-// ✅ Fetch all orders with date fix
-app.get("/api/orders", (req, res) => {
-  db.all("SELECT * FROM orders", [], (err, rows) => {
-    if (err) return res.status(500).send("Fetch error");
-
-    const parsed = rows.map(row => {
-      // Convert dd-MM-yyyy to yyyy-MM-dd if needed
-      let isoDate = "";
-
-const rawDate = (row.createdAt || "").trim();
-
-if (/^\d{2}-\d{2}-\d{4}$/.test(rawDate)) {
-  const [dd, mm, yyyy] = rawDate.split("-");
-  isoDate = `${yyyy}-${mm}-${dd}`;
-} else {
-  isoDate = rawDate; // already correct or empty
-}
-
-      return {
-  ...row,
-  createdAt: isoDate,
-  items: (() => {
-    try {
-      if(!row.items) return[];
-      return JSON.parse(row.items);
-    } catch (e) {
-      console.error("JSON parse error:", e);
-      return [];
-    }
-  })()
-  };
-    });
-
-    res.json(parsed);
-  });
+// ✅ Fetch all orders
+app.get("/api/orders", async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT * FROM orders ORDER BY createdAt DESC"
+    );
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).send("Fetch error");
+  }
 });
 
 // ✅ DELETE order
-app.delete("/api/orders/:id", (req, res) => {
-  const orderId = req.params.id;
+app.delete("/api/orders/:id", async (req, res) => {
+  try {
+    const result = await pool.query(
+      "DELETE FROM orders WHERE id = $1",
+      [req.params.id]
+    );
 
-  db.run(
-    "DELETE FROM orders WHERE id = ?",
-    [orderId],
-    function (err) {
-      if (err) {
-        return res.status(500).send("Delete error: " + err.message);
-      }
-
-      if (this.changes === 0) {
-        return res.status(404).send("Order not found");
-      }
-
-      res.send("✅ Order deleted");
+    if (result.rowCount === 0) {
+      return res.status(404).send("Order not found");
     }
-  );
+
+    res.send("✅ Order deleted");
+  } catch (err) {
+    res.status(500).send("Delete error");
+  }
 });
 
-app.get("/api/orders/:id", (req, res) => {
-  const id = req.params.id;
+// ✅ Get single order
+app.get("/api/orders/:id", async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT * FROM orders WHERE id = $1",
+      [req.params.id]
+    );
 
-  db.get("SELECT * FROM orders WHERE id = ?", [id], (err, row) => {
-    if (err) return res.status(500).send("Fetch error");
-    if (!row) return res.status(404).send("Order not found");
-
-    // ✅ Fix date same as list API
-    let isoDate = "";
-    const rawDate = (row.createdAt || "").trim();
-
-    if (/^\d{2}-\d{2}-\d{4}$/.test(rawDate)) {
-      const [dd, mm, yyyy] = rawDate.split("-");
-      isoDate = `${yyyy}-${mm}-${dd}`;
-    } else {
-      isoDate = rawDate;
+    if (result.rows.length === 0) {
+      return res.status(404).send("Order not found");
     }
 
-    // ✅ Parse items safely
-    let items = [];
-    try {
-      items = JSON.parse(row.items || "[]");
-    } catch (e) {
-      console.error("JSON parse error:", e);
-    }
-
-    res.json({
-      ...row,
-      createdAt: isoDate,
-      items
-    });
-  });
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).send("Fetch error");
+  }
 });
 
-app.put("/api/orders/:id", (req, res) => {
-  const id = req.params.id;
-  const order = req.body;
+// ✅ Update order
+app.put("/api/orders/:id", async (req, res) => {
+  try {
+    const order = req.body;
 
-  db.run(
-    `UPDATE orders SET 
-      clientName=?, clientPhone=?, clientAddress=?, gstNumber=?, transport=?,
-       transportAddress=?, packingCharges=?, otherCharges=?, gstAmount=?, total=?, items=?
-     WHERE id=?`,
-    [
-      order.clientName,
-      order.clientPhone,
-      order.clientAddress,
-      order.gstNumber,
-      order.transport,
-      order.transportAddress,
-      order.packingCharges,
-      order.otherCharges,
-      order.gstAmount,
-      order.total,
-      JSON.stringify(order.items),
-      id
-    ],
-    function (err) {
-      if (err) return res.status(500).send(err.message);
-      res.send("✅ Order updated");
-    }
-  );
+    await pool.query(
+      `UPDATE orders SET 
+        clientName=$1, clientPhone=$2, clientAddress=$3, gstNumber=$4,
+        transport=$5, transportAddress=$6, packingCharges=$7,
+        otherCharges=$8, gstAmount=$9, total=$10, items=$11
+       WHERE id=$12`,
+      [
+        order.clientName,
+        order.clientPhone,
+        order.clientAddress,
+        order.gstNumber,
+        order.transport,
+        order.transportAddress,
+        order.packingCharges,
+        order.otherCharges,
+        order.gstAmount,
+        order.total,
+        order.items,
+        req.params.id
+      ]
+    );
+
+    res.send("✅ Order updated");
+  } catch (err) {
+    res.status(500).send("Update error");
+  }
 });
 
 
 // ✅ Root test route
 app.get("/", (req, res) => {
-  res.send("✅ Chinu Sync Server is running locally!");
+  res.send("✅ Chinu Sync Server is LIVE 🚀");
 });
 
-// ✅ Start server
-app.listen(8080, () => {
-  console.log("📡 Server running at http://<your-pc-ip>:8080");
+
+// ✅ Start server (Railway compatible)
+const PORT = process.env.PORT || 8080;
+
+app.listen(PORT, () => {
+  console.log("📡 Server running on port", PORT);
 });
