@@ -97,7 +97,7 @@ app.post("/api/orders", async (req, res) => {
         order.packingCharges,
         order.otherCharges,
         order.gstAmount,
-        order.items, // JSON directly
+        JSON.stringify(order.items), // JSON directly
         order.total,
         order.createdAt,
         order.status
