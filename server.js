@@ -35,7 +35,7 @@ const pool =new Pool({
         gstAmount REAL,
         items JSONB,
         total REAL,
-        createdAt TIMESTAMP,
+        createdAt TEXT,
         status TEXT
       );
     `);
