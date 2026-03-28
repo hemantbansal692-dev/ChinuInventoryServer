@@ -235,7 +235,7 @@ app.put("/api/orders/:id", async (req, res) => {
         order.otherCharges,
         order.gstAmount,
         order.total,
-        order.items,
+        JSON.stringify(order.items),
         req.params.id
       ]
     );
