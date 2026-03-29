@@ -171,25 +171,26 @@ app.get("/api/orders", async (req, res) => {
     const result = await pool.query(`
       SELECT 
         id,
-        "clientName",
-        "clientPhone",
-        "clientAddress",
-        "gstNumber",
+        clientname AS "clientName",
+        clientphone AS "clientPhone",
+        clientaddress AS "clientAddress",
+        gstnumber AS "gstNumber",
         transport,
-        "transportAddress",
-        "packingCharges",
-        "otherCharges",
-        "gstAmount",
+        transportaddress AS "transportAddress",
+        packingcharges AS "packingCharges",
+        othercharges AS "otherCharges",
+        gstamount AS "gstAmount",
         items,
         total,
-        "createdAt",
+        createdat AS "createdAt",
         status
       FROM orders
-      ORDER BY "createdAt" DESC
+      ORDER BY createdat DESC
     `);
 
     res.json(result.rows);
   } catch (err) {
+    console.error(err); // 👈 ADD THIS
     res.status(500).send("Fetch error");
   }
 });
@@ -215,10 +216,25 @@ app.delete("/api/orders/:id", async (req, res) => {
 // ✅ Get single order
 app.get("/api/orders/:id", async (req, res) => {
   try {
-    const result = await pool.query(
-      "SELECT * FROM orders WHERE id = $1",
-      [req.params.id]
-    );
+    const result = await pool.query(`
+      SELECT 
+        id,
+        clientname AS "clientName",
+        clientphone AS "clientPhone",
+        clientaddress AS "clientAddress",
+        gstnumber AS "gstNumber",
+        transport,
+        transportaddress AS "transportAddress",
+        packingcharges AS "packingCharges",
+        othercharges AS "otherCharges",
+        gstamount AS "gstAmount",
+        items,
+        total,
+        createdat AS "createdAt",
+        status
+      FROM orders
+      WHERE id = $1
+    `, [req.params.id]);
 
     if (result.rows.length === 0) {
       return res.status(404).send("Order not found");
@@ -226,6 +242,7 @@ app.get("/api/orders/:id", async (req, res) => {
 
     res.json(result.rows[0]);
   } catch (err) {
+    console.error(err);
     res.status(500).send("Fetch error");
   }
 });
