@@ -63,7 +63,11 @@ const pool =new Pool({
 // ✅ Sync order from Android
 app.post("/api/orders", async (req, res) => {
   try {
-   const order = req.body;
+    const order = req.body;
+
+    const createdAt = order.createdAt
+      ? order.createdAt   // keep if already exists (for updates)
+      : new Date().toISOString(); // generate if new
 
     await pool.query(
       `INSERT INTO orders (
@@ -97,9 +101,9 @@ app.post("/api/orders", async (req, res) => {
         order.packingCharges,
         order.otherCharges,
         order.gstAmount,
-        JSON.stringify(order.items), // JSON directly
+        JSON.stringify(order.items),
         order.total,
-        order.createdAt,
+        createdAt, // ✅ FIXED
         order.status
       ]
     );
