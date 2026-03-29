@@ -63,24 +63,7 @@ const pool =new Pool({
 // ✅ Sync order from Android
 app.post("/api/orders", async (req, res) => {
   try {
-   const raw = req.body;
-
-  const order = {
-    id: raw.id,
-    clientName: raw.clientName || raw.clientname,
-    clientPhone: raw.clientPhone || raw.clientphone,
-    clientAddress: raw.clientAddress || raw.clientaddress,
-    gstNumber: raw.gstNumber || raw.gstnumber,
-    transport: raw.transport,
-    transportAddress: raw.transportAddress || raw.transportaddress,
-    packingCharges: raw.packingCharges ?? raw.packingcharges,
-    otherCharges: raw.otherCharges ?? raw.othercharges,
-    gstAmount: raw.gstAmount ?? raw.gstamount,
-    items: raw.items,
-    total: raw.total,
-    createdAt: raw.createdAt || raw.createdat,
-    status: raw.status
-  };
+   const order = req.body;
 
     await pool.query(
       `INSERT INTO orders (
@@ -185,9 +168,26 @@ app.get("/api/products", async (req, res) => {
 // ✅ Fetch all orders
 app.get("/api/orders", async (req, res) => {
   try {
-    const result = await pool.query(
-      "SELECT * FROM orders ORDER BY createdAt DESC"
-    );
+    const result = await pool.query(`
+      SELECT 
+        id,
+        "clientName",
+        "clientPhone",
+        "clientAddress",
+        "gstNumber",
+        transport,
+        "transportAddress",
+        "packingCharges",
+        "otherCharges",
+        "gstAmount",
+        items,
+        total,
+        "createdAt",
+        status
+      FROM orders
+      ORDER BY "createdAt" DESC
+    `);
+
     res.json(result.rows);
   } catch (err) {
     res.status(500).send("Fetch error");
@@ -233,24 +233,7 @@ app.get("/api/orders/:id", async (req, res) => {
 // ✅ Update order
 app.put("/api/orders/:id", async (req, res) => {
   try {
-   const raw = req.body;
-
-    const order = {
-      id: raw.id,
-      clientName: raw.clientName || raw.clientname,
-      clientPhone: raw.clientPhone || raw.clientphone,
-      clientAddress: raw.clientAddress || raw.clientaddress,
-      gstNumber: raw.gstNumber || raw.gstnumber,
-      transport: raw.transport,
-      transportAddress: raw.transportAddress || raw.transportaddress,
-      packingCharges: raw.packingCharges ?? raw.packingcharges,
-      otherCharges: raw.otherCharges ?? raw.othercharges,
-      gstAmount: raw.gstAmount ?? raw.gstamount,
-      items: raw.items,
-      total: raw.total,
-      createdAt: raw.createdAt || raw.createdat,
-      status: raw.status
-    };
+   const order = req.body;
 
     await pool.query(
       `UPDATE orders SET 
