@@ -49,7 +49,7 @@ const pool =new Pool({
         gstAmount REAL,
         items JSONB,
         total REAL,
-        createdAt TIMESTAMP,
+        orderDate TEXT,
         updatedAt BIGINT DEFAULT 0,
         status TEXT
       );
@@ -80,9 +80,7 @@ app.post("/api/orders", async (req, res) => {
   try {
     const order = req.body; // ✅ FIRST define
 
-    const createdAt = order.createdAt
-      ? order.createdAt
-      : new Date().toISOString();
+    const orderDate = order.orderDate;
 
       const updatedAt = Date.now();
 
@@ -90,7 +88,7 @@ app.post("/api/orders", async (req, res) => {
       `INSERT INTO orders (
         id, clientName, clientPhone, clientAddress, gstNumber,
         transport, transportAddress, packingCharges, otherCharges,
-        gstAmount, items, total, createdAt, updatedAt, status
+        gstAmount, items, total, orderDate, updatedAt, status
       ) VALUES (
         $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15
       )
@@ -107,6 +105,7 @@ app.post("/api/orders", async (req, res) => {
         items = EXCLUDED.items,
         total = EXCLUDED.total,
         status = EXCLUDED.status,
+        orderDate = EXCLUDED.orderDate,
         updatedAt = EXCLUDED.updatedAt`,
       [
         order.id,
@@ -121,14 +120,17 @@ app.post("/api/orders", async (req, res) => {
         order.gstAmount,
         JSON.stringify(order.items),
         order.total,
-        createdAt,
+        orderDate,
         updatedAt,
         order.status
       ]
     );
 
     // ✅ EMIT AFTER DB SAVE
-    io.to("defaultShop").emit("orderUpdated", order);
+    io.to("defaultShop").emit("orderUpdated", {
+  ...order,
+  updatedAt: updatedAt
+});
 
     res.send("✅ Order synced");
 
@@ -209,11 +211,11 @@ app.get("/api/orders", async (req, res) => {
         gstamount AS "gstAmount",
         items,
         total,
-        createdat AS "createdAt",
+        orderdate AS "orderDate",
         updatedat AS "updatedAt",
         status
       FROM orders
-      ORDER BY createdat DESC
+      ORDER BY updatedAt DESC
     `);
 
     res.json(result.rows);
@@ -258,7 +260,7 @@ app.get("/api/orders/:id", async (req, res) => {
         gstamount AS "gstAmount",
         items,
         total,
-        createdat AS "createdAt",
+        orderdate AS "orderDate",
         status
       FROM orders
       WHERE id = $1
