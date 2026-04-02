@@ -1,9 +1,23 @@
 const express = require("express");
+const app = express();
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const { Pool } = require("pg");
+const server = require("http").createServer(app);
+const io = require("socket.io")(server, {
+  cors: { origin: "*" }
+});
 
-const app = express();
+io.on("connection", (socket) => {
+  console.log("User connected");
+
+  socket.on("joinShop", (shopId) => {
+    socket.join(shopId);
+  });
+});
+
+
+
 app.use(cors({
   origin: "*"
 }));
@@ -35,7 +49,8 @@ const pool =new Pool({
         gstAmount REAL,
         items JSONB,
         total REAL,
-        createdAt TEXT,
+        createdAt TIMESTAMP,
+        updatedAt BIGINT DEFAULT 0,
         status TEXT
       );
     `);
@@ -63,19 +78,21 @@ const pool =new Pool({
 // ✅ Sync order from Android
 app.post("/api/orders", async (req, res) => {
   try {
-    const order = req.body;
+    const order = req.body; // ✅ FIRST define
 
     const createdAt = order.createdAt
-      ? order.createdAt   // keep if already exists (for updates)
-      : new Date().toISOString(); // generate if new
+      ? order.createdAt
+      : new Date().toISOString();
+
+      const updatedAt = Date.now();
 
     await pool.query(
       `INSERT INTO orders (
         id, clientName, clientPhone, clientAddress, gstNumber,
         transport, transportAddress, packingCharges, otherCharges,
-        gstAmount, items, total, createdAt, status
+        gstAmount, items, total, createdAt, updatedAt, status
       ) VALUES (
-        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15
       )
       ON CONFLICT (id) DO UPDATE SET
         clientName = EXCLUDED.clientName,
@@ -89,7 +106,8 @@ app.post("/api/orders", async (req, res) => {
         gstAmount = EXCLUDED.gstAmount,
         items = EXCLUDED.items,
         total = EXCLUDED.total,
-        status = EXCLUDED.status`,
+        status = EXCLUDED.status,
+        updatedAt = EXCLUDED.updatedAt`,
       [
         order.id,
         order.clientName,
@@ -103,12 +121,17 @@ app.post("/api/orders", async (req, res) => {
         order.gstAmount,
         JSON.stringify(order.items),
         order.total,
-        createdAt, // ✅ FIXED
+        createdAt,
+        updatedAt,
         order.status
       ]
     );
 
+    // ✅ EMIT AFTER DB SAVE
+    io.to("defaultShop").emit("orderUpdated", order);
+
     res.send("✅ Order synced");
+
   } catch (err) {
     console.error(err);
     res.status(500).send("DB error");
@@ -187,6 +210,7 @@ app.get("/api/orders", async (req, res) => {
         items,
         total,
         createdat AS "createdAt",
+        updatedat AS "updatedAt",
         status
       FROM orders
       ORDER BY createdat DESC
@@ -294,6 +318,6 @@ app.get("/", (req, res) => {
 // ✅ Start server (Railway compatible)
 const PORT = process.env.PORT || 8080;
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log("📡 Server running on port", PORT);
 });
