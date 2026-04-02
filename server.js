@@ -128,7 +128,20 @@ app.post("/api/orders", async (req, res) => {
 
     // ✅ EMIT AFTER DB SAVE
     io.to("defaultShop").emit("orderUpdated", {
-  ...order,
+  id: order.id,
+  clientName: order.clientName,
+  clientPhone: order.clientPhone,
+  clientAddress: order.clientAddress,
+  gstNumber: order.gstNumber,
+  transport: order.transport,
+  transportAddress: order.transportAddress,
+  packingCharges: order.packingCharges,
+  otherCharges: order.otherCharges,
+  gstAmount: order.gstAmount,
+  items: order.items,
+  total: order.total,
+  orderDate: order.orderDate, // ✅ IMPORTANT
+  status: order.status,
   updatedAt: updatedAt
 });
 
