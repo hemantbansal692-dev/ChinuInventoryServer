@@ -212,23 +212,23 @@ app.get("/api/orders", async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT 
-        id,
-        clientname AS "clientName",
-        clientphone AS "clientPhone",
-        clientaddress AS "clientAddress",
-        gstnumber AS "gstNumber",
-        transport,
-        transportaddress AS "transportAddress",
-        packingcharges AS "packingCharges",
-        othercharges AS "otherCharges",
-        gstamount AS "gstAmount",
-        items,
-        total,
-        orderdate AS "orderDate",
-        updatedat AS "updatedAt",
-        status
-      FROM orders
-      ORDER BY updatedAt DESC
+  id,
+  "clientName",
+  "clientPhone",
+  "clientAddress",
+  "gstNumber",
+  transport,
+  "transportAddress",
+  "packingCharges",
+  "otherCharges",
+  "gstAmount",
+  items,
+  total,
+  "orderDate",
+  "updatedAt",
+  status
+FROM orders
+ORDER BY "updatedAt" DESC
     `);
 
     res.json(result.rows);
@@ -261,22 +261,22 @@ app.get("/api/orders/:id", async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT 
-        id,
-        clientname AS "clientName",
-        clientphone AS "clientPhone",
-        clientaddress AS "clientAddress",
-        gstnumber AS "gstNumber",
-        transport,
-        transportaddress AS "transportAddress",
-        packingcharges AS "packingCharges",
-        othercharges AS "otherCharges",
-        gstamount AS "gstAmount",
-        items,
-        total,
-        orderdate AS "orderDate",
-        status
-      FROM orders
-      WHERE id = $1
+  id,
+  "clientName",
+  "clientPhone",
+  "clientAddress",
+  "gstNumber",
+  transport,
+  "transportAddress",
+  "packingCharges",
+  "otherCharges",
+  "gstAmount",
+  items,
+  total,
+  "orderDate",
+  status
+FROM orders
+WHERE id = $1
     `, [req.params.id]);
 
     if (result.rows.length === 0) {
