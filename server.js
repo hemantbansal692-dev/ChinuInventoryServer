@@ -200,7 +200,20 @@ app.post("/api/products/upload", async (req, res) => {
 // ✅ Fetch all products
 app.get("/api/products", async (req, res) => {
   try {
-    const result = await pool.query("SELECT * FROM products");
+    const result = await pool.query(`
+      SELECT
+      id,
+      name,
+      quantity,
+      minstock AS "minStock",
+      purchaseprice AS "purchasePrice",
+      sellingprice AS "sellingPrice",
+      category,
+      requiredquantity AS "requiredQuantity"
+      FROM products
+      `
+      
+      );
     res.json(result.rows);
   } catch (err) {
     res.status(500).send("Fetch error");
