@@ -65,7 +65,8 @@ const pool =new Pool({
         purchasePrice REAL,
         sellingPrice REAL,
         category TEXT,
-        requiredQuantity INTEGER
+        requiredQuantity INTEGER,
+        updatedAt BIGINT DEFAULT 0
       );
     `);
 
@@ -166,8 +167,9 @@ app.post("/api/products/upload", async (req, res) => {
       await pool.query(
         `INSERT INTO products (
           id, name, quantity, minStock,
-          purchasePrice, sellingPrice, category, requiredQuantity
-        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+          purchasePrice, sellingPrice, category, requiredQuantity,
+          updatedAt
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
         ON CONFLICT (id) DO UPDATE SET
           name = EXCLUDED.name,
           quantity = EXCLUDED.quantity,
@@ -175,7 +177,9 @@ app.post("/api/products/upload", async (req, res) => {
           purchasePrice = EXCLUDED.purchasePrice,
           sellingPrice = EXCLUDED.sellingPrice,
           category = EXCLUDED.category,
-          requiredQuantity = EXCLUDED.requiredQuantity`,
+          requiredQuantity = EXCLUDED.requiredQuantity,
+          updatedAt = EXCLUDED.updatedAt
+          WHERE products.updatedAt < EXCLUDED.updatedAt`,
         [
           p.id,
           p.name,
@@ -184,7 +188,8 @@ app.post("/api/products/upload", async (req, res) => {
           p.purchasePrice,
           p.sellingPrice || 0,
           p.category || "Others",
-          p.requiredQuantity || 0
+          p.requiredQuantity || 0,
+          p.updatedAt || Date.now()
         ]
       );
     }
@@ -209,7 +214,8 @@ app.get("/api/products", async (req, res) => {
       purchaseprice AS "purchasePrice",
       sellingprice AS "sellingPrice",
       category,
-      requiredquantity AS "requiredQuantity"
+      requiredquantity AS "requiredQuantity",
+      updatedat AS "updatedAt"
       FROM products
       `
       
