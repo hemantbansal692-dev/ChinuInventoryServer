@@ -193,18 +193,10 @@ app.post("/api/products/upload", async (req, res) => {
         ]
       );
 
-      io.to("defaultShop").emit("productUpdated", {
-        id: products.id,
-        name: products.name,
-        quantity: products.quantity,
-        minStock: products.minStock,
-        purchasePrice: products.purchasePrice,
-        sellingPrice: products.sellingPrice,
-        category: products.category,
-        requiredQuantity: products.requiredQuantity,
-        updatedAt: updatedAt
-      });
+      
     }
+
+    io.to("defaultShop").emit("productUpdated", products);
 
     res.send("✅ Bulk products synced");
   } catch (err) {
