@@ -318,12 +318,13 @@ app.get("/api/orders/:id", async (req, res) => {
 app.put("/api/orders/:id", async (req, res) => {
   try {
    const order = req.body;
+   const updated = Date.now();
 
     await pool.query(
       `UPDATE orders SET 
         clientName=$1, clientPhone=$2, clientAddress=$3, gstNumber=$4,
         transport=$5, transportAddress=$6, packingCharges=$7,
-        otherCharges=$8, gstAmount=$9, total=$10, items=$11, updatedAt=$12,
+        otherCharges=$8, gstAmount=$9, total=$10, items=$11, updatedAt=$12
        WHERE id=$13`,
       [
         order.clientName,
@@ -350,6 +351,7 @@ app.put("/api/orders/:id", async (req, res) => {
 
     res.send("✅ Order updated");
   } catch (err) {
+     console.error(err);
     res.status(500).send("Update error");
   }
 });
