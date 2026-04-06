@@ -341,6 +341,12 @@ app.put("/api/orders/:id", async (req, res) => {
       ]
     );
 
+    io.to("defaultShop").emit("orderUpdated", {
+      ...order,
+      id: req.params.id,
+      updatedAt
+    });
+
     res.send("✅ Order updated");
   } catch (err) {
     res.status(500).send("Update error");
