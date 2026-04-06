@@ -337,6 +337,7 @@ app.put("/api/orders/:id", async (req, res) => {
         order.gstAmount,
         order.total,
         JSON.stringify(order.items),
+        updatedAt,
         req.params.id
       ]
     );
