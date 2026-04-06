@@ -323,8 +323,8 @@ app.put("/api/orders/:id", async (req, res) => {
       `UPDATE orders SET 
         clientName=$1, clientPhone=$2, clientAddress=$3, gstNumber=$4,
         transport=$5, transportAddress=$6, packingCharges=$7,
-        otherCharges=$8, gstAmount=$9, total=$10, items=$11
-       WHERE id=$12`,
+        otherCharges=$8, gstAmount=$9, total=$10, items=$11, updatedAt=$12,
+       WHERE id=$13`,
       [
         order.clientName,
         order.clientPhone,
