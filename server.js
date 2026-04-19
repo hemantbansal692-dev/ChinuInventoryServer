@@ -178,6 +178,9 @@ app.post("/api/orders", async (req, res) => {
 
     res.send("✅ Order synced");
 
+    console.log("🔥 API HIT");
+console.log("📦 Incoming:", req.body);
+
   } catch (err) {
     console.error(err);
     res.status(500).send("DB error");
