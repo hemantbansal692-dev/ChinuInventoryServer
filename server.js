@@ -98,10 +98,11 @@ app.post("/api/orders", async (req, res) => {
   try {
     const order = req.body; // ✅ FIRST define
 
-    const shopId = requireShopId(req, res);
-    if (!shopId) return;
+    const shopId = order.shopId;
+    if (!shopId) return res.status(400).send("shopId required");
 
     const updatedAt = Date.now();
+    const orderDate = order.orderDate;
 
     await pool.query(
       `INSERT INTO orders (
@@ -162,8 +163,7 @@ app.post("/api/orders", async (req, res) => {
   total: order.total,
   orderDate: order.orderDate, // ✅ IMPORTANT
   status: order.status,
-  updatedAt: updatedAt,
-  shopId: shopId,
+  updatedAt: updatedAt
 });
 
     res.send("✅ Order synced");
