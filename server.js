@@ -85,11 +85,17 @@ const pool =new Pool({
 })();
 
 const requireShopId = (req, res) => {
-  const shopId =
+  let shopId =
     req.query?.shopId ||
     req.body?.shopId;
 
+  // 🔥 HANDLE ARRAY BODY
+  if (!shopId && Array.isArray(req.body) && req.body.length > 0) {
+    shopId = req.body[0]?.shopId;
+  }
+
   if (!shopId) {
+    console.log("❌ Missing shopId", req.body);
     res.status(400).send("shopId required");
     return null;
   }
