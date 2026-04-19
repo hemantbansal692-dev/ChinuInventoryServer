@@ -178,9 +178,6 @@ app.post("/api/orders", async (req, res) => {
 
     res.send("✅ Order synced");
 
-    console.log("🔥 API HIT");
-console.log("📦 Incoming:", req.body);
-
   } catch (err) {
     console.error(err);
     res.status(500).send("DB error");
@@ -232,6 +229,9 @@ app.post("/api/products/upload", async (req, res) => {
     if (shopId) {
       io.to(`shop_${shopId}`).emit("productUpdated", products);
     }
+
+    console.log("🔥 API HIT");
+console.log("📦 Incoming:", req.body);
 
     res.send("✅ Products synced");
   } catch (err) {
