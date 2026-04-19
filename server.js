@@ -85,11 +85,15 @@ const pool =new Pool({
 })();
 
 const requireShopId = (req, res) => {
-  const shopId = req.query.shopId || req.body.shopId;
+  const shopId =
+    req.query?.shopId ||
+    req.body?.shopId;
+
   if (!shopId) {
     res.status(400).send("shopId required");
     return null;
   }
+
   return shopId;
 };
 
